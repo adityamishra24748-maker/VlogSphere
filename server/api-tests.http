@@ -1,0 +1,114 @@
+### ========================================================
+### VlogSphere REST API Test Suite (VS Code REST Client format)
+### Base URL: http://localhost:5000/api
+### ========================================================
+
+@baseUrl = http://localhost:5000/api
+@authToken = {{login.response.body.data.token}}
+
+### 1. Health Check
+GET {{baseUrl}}/health
+Accept: application/json
+
+### 2. Register New Creator Channel
+# @name signup
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Sarah Miller",
+  "handle": "@sarahmiller",
+  "email": "sarah.miller@vlogsphere.io",
+  "password": "password123"
+}
+
+### 3. Login Creator & Receive JWT Token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "sarah.miller@vlogsphere.io",
+  "password": "password123"
+}
+
+### 4. Get Current Authenticated Profile
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 5. Get Vlogs with Pagination (Page 1, Limit 4)
+GET {{baseUrl}}/vlogs?page=1&limit=4
+Accept: application/json
+
+### 6. Get Vlogs Filtered by Category
+GET {{baseUrl}}/vlogs?category=Travel&page=1&limit=6
+Accept: application/json
+
+### 7. Search Vlogs by Keyword (Search for 'tokyo')
+GET {{baseUrl}}/vlogs?search=tokyo
+Accept: application/json
+
+### 8. Get Vlogs Sorted by Most Viewed
+GET {{baseUrl}}/vlogs?sort=views&limit=5
+Accept: application/json
+
+### 9. Get Single Vlog Details by ID
+# Replace :id with an actual MongoDB Vlog ID or seeded ID
+GET {{baseUrl}}/vlogs/673c9f2b84784918e9a1c001
+Accept: application/json
+
+### 10. Publish New Vlog (Protected)
+# @name createVlog
+POST {{baseUrl}}/vlogs
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Winter in Hokkaido: Powder Snow, Onsens & Ramen in Otaru",
+  "description": "Traveling through deep snow drifts across northern Japan. Experiencing traditional wooden ryokans and hot springs.",
+  "category": "Travel",
+  "tags": ["Hokkaido", "Japan", "WinterVlog", "Cinematic"],
+  "thumbnail": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1200&q=80",
+  "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  "duration": "16:45",
+  "is4K": true
+}
+
+### 11. Toggle Like on Vlog (Protected)
+POST {{baseUrl}}/vlogs/673c9f2b84784918e9a1c001/like
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+### 12. Add Comment to Vlog (Protected)
+POST {{baseUrl}}/vlogs/673c9f2b84784918e9a1c001/comments
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "text": "Stunning visuals! What camera lens did you use for the low-light street sequences?"
+}
+
+### 13. Toggle Subscription to Channel (Protected)
+# Replace :channelId with the target Creator User ID
+POST {{baseUrl}}/subscriptions/673c9f2b84784918e9a1b002/toggle
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+### 14. Get List of Subscribed Channels (Protected)
+GET {{baseUrl}}/subscriptions/channels
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 15. Get Creator Channel Profile by Handle
+GET {{baseUrl}}/users/%40elenarostova
+Accept: application/json
+
+### 16. Get Studio Analytics & Dashboard Stats (Protected)
+GET {{baseUrl}}/users/dashboard/stats
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 17. Test Centralized 404 Error Handler
+GET {{baseUrl}}/invalid-non-existent-endpoint
+Accept: application/json
