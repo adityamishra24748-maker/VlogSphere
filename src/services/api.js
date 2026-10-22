@@ -1,7 +1,10 @@
 import { INITIAL_VLOGS, CURRENT_USER, SUBSCRIBED_CREATORS } from '../data/mockVlogs';
 
-// Smart base URL: uses /api through Vite proxy when on port 3000, or direct localhost:5000
+// Smart base URL: uses VITE_API_URL, /api through Vite proxy when on port 3000, or direct localhost:5000
 const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   if (typeof window !== 'undefined' && window.location.port === '3000') {
     return '/api';
   }
