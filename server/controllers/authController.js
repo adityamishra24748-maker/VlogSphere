@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Subscription from '../models/Subscription.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
@@ -17,6 +18,16 @@ const generateToken = (id) => {
 // @route   POST /api/auth/signup
 export const signup = async (req, res, next) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      const isPlaceholder = process.env.MONGO_URI?.includes('<db_password>');
+      return sendError(res, {
+        statusCode: 503,
+        message: isPlaceholder
+          ? 'MongoDB Atlas is not connected: Please replace <db_password> in server/.env with your actual password.'
+          : 'MongoDB Atlas is connecting or unreachable. Please check your Atlas credentials and Network Access.',
+      });
+    }
+
     const { name, handle, email, password } = req.body;
 
     if (!name || !handle || !email || !password) {
@@ -78,6 +89,16 @@ export const signup = async (req, res, next) => {
 // @route   POST /api/auth/login
 export const login = async (req, res, next) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      const isPlaceholder = process.env.MONGO_URI?.includes('<db_password>');
+      return sendError(res, {
+        statusCode: 503,
+        message: isPlaceholder
+          ? 'MongoDB Atlas is not connected: Please replace <db_password> in server/.env with your actual password.'
+          : 'MongoDB Atlas is connecting or unreachable. Please check your Atlas credentials and Network Access.',
+      });
+    }
+
     const { email, password } = req.body;
 
     if (!email || !password) {
