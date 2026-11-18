@@ -1,5 +1,12 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config();
 
 const testConnection = async () => {
@@ -8,16 +15,14 @@ const testConnection = async () => {
   console.log('📡 Testing MongoDB Atlas Connection...');
   console.log('----------------------------------------------------');
 
-  if (!uri || uri.includes('<password>') || uri.includes('cluster0.abcde')) {
-    console.warn('⚠️  Your MONGO_URI in server/.env needs your actual Atlas credentials.');
+  if (!uri || uri.includes('<db_password>') || uri.includes('<password>')) {
+    console.warn('⚠️  Your MONGO_URI contains the placeholder "<db_password>".');
     console.log('   Expected format:');
-    console.log('   mongodb+srv://<username>:<password>@<cluster>.mongodb.net/vlogsphere?retryWrites=true&w=majority\n');
-    console.log('   Steps to get your connection string from MongoDB Atlas:');
-    console.log('   1. In Atlas, click "Database" -> "Connect".');
-    console.log('   2. Select "Drivers" (Node.js).');
-    console.log('   3. Copy the connection string.');
-    console.log('   4. Replace <password> with your actual database user password.');
-    console.log('   5. Save into server/.env.');
+    console.log('   mongodb+srv://adityamishra24748_db_user:<your_password>@cluster0.fr4p7qk.mongodb.net/vlogsphere?compressors=zlib&retryWrites=true&w=majority\n');
+    console.log('   Steps to activate your MongoDB Atlas connection:');
+    console.log('   1. In server/.env, replace <db_password> with your actual database user password.');
+    console.log('   2. Ensure 0.0.0.0/0 is added to your MongoDB Atlas Network Access.');
+    console.log('   3. Run "npm run test:db" to verify.');
     console.log('----------------------------------------------------');
     process.exit(1);
   }

@@ -9,6 +9,14 @@ const connectDB = async () => {
     return;
   }
 
+  if (uri.includes('<db_password>') || uri.includes('<password>')) {
+    console.warn('--------------------------------------------------------------------------------');
+    console.warn('⚠️ [MongoDB Atlas Action Required]');
+    console.warn('   Your MONGO_URI in server/.env contains the placeholder "<db_password>".');
+    console.warn('   Please replace "<db_password>" with your actual MongoDB Atlas database user password.');
+    console.warn('--------------------------------------------------------------------------------');
+  }
+
   try {
     const conn = await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
@@ -19,17 +27,17 @@ const connectDB = async () => {
     console.log(`✅ [MongoDB ${isAtlas ? 'Atlas' : 'Local'}] Connected to Database: "${conn.connection.name}"`);
     console.log(`   Host: ${conn.connection.host}`);
   } catch (error) {
-    console.warn(`⚠️ [MongoDB Connection Warning]: ${error.message}`);
+    console.warn(`⚠️ [MongoDB Connection Notice]: ${error.message}`);
     console.warn('   Tips for MongoDB Atlas:');
     console.warn('   1. Verify your IP is added to Atlas Network Access (0.0.0.0/0 or current IP).');
-    console.warn('   2. Verify username and password in MONGO_URI in server/.env.');
-    console.warn('   (The Express server will still run and serve dual-mode endpoints)');
+    console.warn('   2. Replace <db_password> with your actual database user password in server/.env.');
+    console.warn('   3. Verify database user privileges in Atlas Database Access (readWriteAnyDatabase).');
   }
 };
 
 // Connection event listeners
 mongoose.connection.on('disconnected', () => {
-  console.warn('⚠️ [MongoDB Atlas] Lost database connection.');
+  console.warn('⚠️ [MongoDB Atlas] Database connection lost.');
 });
 
 mongoose.connection.on('reconnected', () => {

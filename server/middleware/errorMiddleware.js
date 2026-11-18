@@ -11,12 +11,24 @@ export const notFound = (req, res, next) => {
 
 /**
  * Centralized Error Handler Middleware
- * Normalizes Mongoose and application errors into a uniform JSON response
+ * Normalizes Mongoose, Atlas, and application errors into a uniform JSON response
  */
 export const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message || 'Internal Server Error';
   let errors = null;
+
+  // Handle Mongoose Connection / Buffering Timeout
+  if (err.name === 'MongooseError' && err.message?.includes('buffering timed out')) {
+    message = 'MongoDB Atlas operation timed out. Please ensure your database is connected, <db_password> is replaced in server/.env, and IP 0.0.0.0/0 is whitelisted in Atlas Network Access.';
+    statusCode = 503;
+  }
+
+  // Handle Mongo Server Selection / Network Error
+  if (err.name === 'MongoServerSelectionError' || err.name === 'MongoTopologyClosedError') {
+    message = 'Unable to connect to MongoDB Atlas. Please check your Atlas credentials and Network Access list.';
+    statusCode = 503;
+  }
 
   // Handle Mongoose Bad ObjectId (CastError)
   if (err.name === 'CastError') {
@@ -27,14 +39,14 @@ export const errorHandler = (err, req, res, next) => {
   // Handle Mongoose Duplicate Key Error (code 11000)
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'Field';
-    message = `Duplicate value entered for '${field}'. Please provide a unique value.`;
+    message = `Duplicate value entered for '${field}'. This ${field} is already registered.`;
     statusCode = 400;
   }
 
   // Handle Mongoose Schema Validation Errors
   if (err.name === 'ValidationError') {
     errors = Object.values(err.errors).map((val) => val.message);
-    message = 'Validation failed. Please verify the submitted data.';
+    message = errors.length > 0 ? errors[0] : 'Validation failed. Please verify the submitted data.';
     statusCode = 400;
   }
 

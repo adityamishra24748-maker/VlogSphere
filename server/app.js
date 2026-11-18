@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -24,11 +25,20 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
+  const stateMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+  };
+  const dbStatus = stateMap[mongoose.connection.readyState] || 'unknown';
+
   res.status(200).json({
     success: true,
     message: 'VlogSphere REST API Server is healthy and online.',
     service: 'VlogSphere API Server',
-    database: 'MongoDB Atlas',
+    database: `MongoDB Atlas (${dbStatus})`,
+    databaseConnected: mongoose.connection.readyState === 1,
     version: '2.0.0',
     timestamp: new Date().toISOString(),
   });

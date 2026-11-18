@@ -152,6 +152,15 @@ export const VlogProvider = ({ children }) => {
 
   // Add new vlog dynamically
   const addNewVlog = async ({ title, description, category, tags, thumbnail, duration, videoUrl }) => {
+    const activeUser = (() => {
+      try {
+        const stored = localStorage.getItem('vlogsphere_user');
+        return stored ? JSON.parse(stored) : CURRENT_USER;
+      } catch (e) {
+        return CURRENT_USER;
+      }
+    })();
+
     const newId = `vlog-${Date.now()}`;
     const newVlog = {
       id: newId,
@@ -168,11 +177,11 @@ export const VlogProvider = ({ children }) => {
       likes: 1,
       tags: tags && tags.length > 0 ? tags : ["Vlog", "VlogSphere", category],
       creator: {
-        name: CURRENT_USER.name,
-        handle: CURRENT_USER.handle,
-        avatar: CURRENT_USER.avatar,
-        subscribers: CURRENT_USER.subscribers,
-        verified: true
+        name: activeUser?.name || CURRENT_USER.name,
+        handle: activeUser?.handle || CURRENT_USER.handle,
+        avatar: activeUser?.avatar || CURRENT_USER.avatar,
+        subscribers: activeUser?.subscribers || '0 subscribers',
+        verified: activeUser?.verified ?? true
       },
       comments: []
     };

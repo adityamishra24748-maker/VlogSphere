@@ -11,15 +11,16 @@ export const AuthProvider = ({ children }) => {
       try {
         return JSON.parse(savedUser);
       } catch (e) {
-        return CURRENT_USER;
+        return null;
       }
     }
-    return CURRENT_USER; // Default logged in as creator for easy college portfolio demonstration
+    return null;
   });
 
   const [authError, setAuthError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Sync user changes to localStorage
   useEffect(() => {
     if (user) {
       localStorage.setItem('vlogsphere_user', JSON.stringify(user));
@@ -27,6 +28,18 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('vlogsphere_user');
     }
   }, [user]);
+
+  // Sync with backend on initial load if token exists
+  useEffect(() => {
+    const token = localStorage.getItem('vlogsphere_token');
+    if (token && !user) {
+      authApi.getMe().then((me) => {
+        if (me && (me.id || me._id)) {
+          setUser(me);
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   const login = async (email, password) => {
     setIsLoading(true);
@@ -44,28 +57,16 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
 
-    try {
-      // Try backend authentication first
-      const loggedUser = await authApi.login(email, password);
-      if (loggedUser) {
-        setUser(loggedUser);
-        setIsLoading(false);
-        return true;
-      }
-    } catch (err) {
-      console.warn('Backend login notice, falling back to local session:', err.message);
+    const res = await authApi.login(email, password);
+    setIsLoading(false);
+
+    if (res.success && res.user) {
+      setUser(res.user);
+      return true;
     }
 
-    // Fallback simulation
-    const fallbackUser = {
-      ...CURRENT_USER,
-      email: email,
-      name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    };
-
-    setUser(fallbackUser);
-    setIsLoading(false);
-    return true;
+    setAuthError(res.error || 'Invalid credentials or unable to reach database.');
+    return false;
   };
 
   const signup = async ({ name, handle, email, password }) => {
@@ -80,30 +81,16 @@ export const AuthProvider = ({ children }) => {
 
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
 
-    try {
-      const newUser = await authApi.signup({ name, handle: cleanHandle, email, password });
-      if (newUser) {
-        setUser(newUser);
-        setIsLoading(false);
-        return true;
-      }
-    } catch (err) {
-      console.warn('Backend signup notice, falling back to local session:', err.message);
+    const res = await authApi.signup({ name, handle: cleanHandle, email, password });
+    setIsLoading(false);
+
+    if (res.success && res.user) {
+      setUser(res.user);
+      return true;
     }
 
-    const fallbackUser = {
-      name,
-      handle: cleanHandle,
-      email,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-      subscribers: '0 subscribers',
-      role: 'Creator',
-      notifications: [],
-    };
-
-    setUser(fallbackUser);
-    setIsLoading(false);
-    return true;
+    setAuthError(res.error || 'Failed to create channel in database.');
+    return false;
   };
 
   const demoLogin = () => {

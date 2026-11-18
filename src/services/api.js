@@ -25,7 +25,7 @@ const getAuthHeaders = () => {
   return headers;
 };
 
-// Generic safe request helper with fallback
+// Generic safe request helper
 const safeRequest = async (endpoint, options = {}, fallbackData = null) => {
   try {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
@@ -37,24 +37,27 @@ const safeRequest = async (endpoint, options = {}, fallbackData = null) => {
       },
     });
 
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || `API Error: ${res.statusText}`);
+      return {
+        success: false,
+        error: data.message || `Request failed with status ${res.status}`,
+        data: fallbackData,
+      };
     }
 
-    const data = await res.json();
     return {
       success: true,
       data: data.data !== undefined ? data.data : data,
       pagination: data.pagination,
     };
   } catch (err) {
-    // Graceful offline fallback when backend server or MongoDB is offline
-    console.info(`[VlogSphere API] Offline notice for ${endpoint}: ${err.message}`);
+    console.info(`[VlogSphere API] Network notice for ${endpoint}: ${err.message}`);
     return {
       success: false,
-      isOfflineFallback: true,
-      error: err.message,
+      isNetworkError: true,
+      error: 'Cannot connect to the backend server. Please verify the server is running on port 5000.',
       data: fallbackData,
     };
   }
@@ -76,9 +79,9 @@ export const authApi = {
 
     if (res.success && res.data?.token) {
       localStorage.setItem('vlogsphere_token', res.data.token);
-      return res.data.user;
+      return { success: true, user: res.data.user };
     }
-    return null;
+    return { success: false, error: res.error || 'Invalid email or password' };
   },
 
   signup: async ({ name, handle, email, password }) => {
@@ -93,18 +96,22 @@ export const authApi = {
 
     if (res.success && res.data?.token) {
       localStorage.setItem('vlogsphere_token', res.data.token);
-      return res.data.user;
+      return { success: true, user: res.data.user };
+    }
+    return { success: false, error: res.error || 'Failed to register channel' };
+  },
+
+  getMe: async () => {
+    const res = await safeRequest('/auth/me', { method: 'GET' }, null);
+    if (res.success && res.data) {
+      return res.data?.user || res.data;
     }
     return null;
   },
 
-  getMe: async () => {
-    const res = await safeRequest('/auth/me', { method: 'GET' }, CURRENT_USER);
-    return res.data?.user || res.data;
-  },
-
   logout: () => {
     localStorage.removeItem('vlogsphere_token');
+    localStorage.removeItem('vlogsphere_user');
   },
 };
 
@@ -123,7 +130,7 @@ export const vlogsApi = {
     const queryStr = params.toString() ? `?${params.toString()}` : '';
     const res = await safeRequest(`/vlogs${queryStr}`, { method: 'GET' }, INITIAL_VLOGS);
 
-    return Array.isArray(res.data) ? res.data : INITIAL_VLOGS;
+    return res.success && Array.isArray(res.data) && res.data.length > 0 ? res.data : INITIAL_VLOGS;
   },
 
   getById: async (id) => {
